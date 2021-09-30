@@ -68,6 +68,8 @@ def main(args):
 parser = argparse.ArgumentParser(description='Configurations for WSI Training')
 parser.add_argument('--data_root_dir', type=str, default=None, 
                     help='data directory')
+parser.add_argument('--label_file_name', type=str, default=None, 
+                    help='csv file containing at least 3 columns: case_id, slide_id (unique), label')
 parser.add_argument('--max_epochs', type=int, default=200,
                     help='maximum number of epochs to train (default: 200)')
 parser.add_argument('--lr', type=float, default=1e-4,
@@ -153,7 +155,7 @@ print('\nLoad Dataset')
 
 if args.task == 'task_1_tumor_vs_normal':
     args.n_classes=2
-    dataset = Generic_MIL_Dataset(csv_path = 'dataset_csv/tumor_vs_normal_dummy_clean.csv',
+    dataset = Generic_MIL_Dataset(csv_path = os.path.join(args.data_root_dir, 'tumor_vs_normal_resnet_features',
                             data_dir= os.path.join(args.data_root_dir, 'tumor_vs_normal_resnet_features'),
                             shuffle = False, 
                             seed = args.seed, 
@@ -175,8 +177,24 @@ elif args.task == 'task_2_tumor_subtyping':
 
     if args.model_type in ['clam_sb', 'clam_mb']:
         assert args.subtyping 
-        
+
+elif args.task == 'SMAD4_mut_vs_wt':
+    args.n_classes=1
+    dataset = Generic_MIL_Dataset(csv_path = os.path.join(args.data_root_dir, args.label_file_name),
+                            data_dir= os.path.join(args.data_root_dir, 'features'),
+                            shuffle = False, 
+                            seed = args.seed, 
+                            print_info = True,
+                            label_dict = {'wt':0, 'mut':1},
+                            patient_strat= False,
+                            ignore=[])
+
+    if args.model_type in ['clam_sb', 'clam_mb']:
+        assert args.subtyping 
+
 else:
+    # @HZ: 
+    print("classification task specification error!")
     raise NotImplementedError
     
 if not os.path.isdir(args.results_dir):
